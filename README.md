@@ -47,17 +47,17 @@ Use official Docker image to run Mega.nz-Bot 🐳
 
 1) Using installer script
 
-	If you're using a linux distro with `apt`, `apk`, `pacman` or `dnf` as the package manager, you can use the official installer script to setup [Mega.nz-Bot](https://github.com/Itz-fork/Mega.nz-Bot).
+	If you're using a linux distro with `apt`, `apk`, `pacman` or `dnf` as the package manager, you can use the official installer script to setup [Mega.nz-Bot](https://github.com/AliCl0ner/Mega.nz-Bot).
 
 	```bash
-	curl -sS -O https://raw.githubusercontent.com/Itz-fork/Mega.nz-Bot/main/installer.sh && chmod +x installer.sh && ./installer.sh
+	curl -sS -O https://raw.githubusercontent.com/AliCl0ner/Mega.nz-Bot/main/installer.sh && chmod +x installer.sh && ./installer.sh
 	```
 
 2) Using classic git clone
 
 	- Clone the Repo
 	```
-	git clone https://github.com/Itz-fork/Mega.nz-Bot
+	git clone https://github.com/AliCl0ner/Mega.nz-Bot
 	```
 	- Enter the directory
 	```
