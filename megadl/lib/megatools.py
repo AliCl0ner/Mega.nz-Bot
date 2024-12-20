@@ -319,38 +319,38 @@ class MegaTools:
             env=self.client.environs,
         )
         self.client.mega_running[user_id] = run.pid
-
-        async def read_stream(stream, handler):
+    
+        last_stdout_line = None
+    
+        async def read_stream(stream):
+            nonlocal last_stdout_line
             while True:
                 line = await stream.readline()
                 if line:
-                    await handler(
+                    last_stdout_line = (
                         line.decode("utf-8") if isinstance(line, bytes) else line
                     )
                 else:
                     break
-
-        async def handle_stdout(out):
+    
+        stdout_task = read_stream(run.stdout)
+        stderr_task = read_stream(run.stderr)  # Ignore `stderr` or handle it separately
+    
+        try:
+            await asyncio.gather(stdout_task, stderr_task)
+        except asyncio.CancelledError:
+            asyncio.create_task(self.__terminate_sub(run))
+    
+        await run.wait()
+    
+        # Edit the message with the last line of stdout
+        if last_stdout_line:
             try:
                 await self.client.edit_message_text(
-                    chat_id, msg_id, f"**Process info:** \n`{out}`", **kwargs
+                    chat_id, msg_id, f"**Process info:** \n`{last_stdout_line.strip()}`", **kwargs
                 )
             except Exception as e:
                 logging.warning(e)
-
-        async def handle_stderr(err):
-            if run.returncode is None:
-                await self.__checkErrors(err)
-
-        stdout = read_stream(run.stdout, handle_stdout)
-        stderr = read_stream(run.stderr, handle_stderr)
-
-        try:
-            await asyncio.gather(stdout, stderr)
-        except asyncio.CancelledError:
-            asyncio.create_task(self.__terminate_sub(run))
-
-        await run.wait()
 
     async def __terminate_sub(run):
         run.terminate()
