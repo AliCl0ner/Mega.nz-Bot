@@ -319,38 +319,47 @@ class MegaTools:
             env=self.client.environs,
         )
         self.client.mega_running[user_id] = run.pid
-
-        async def read_stream(stream, handler):
+    
+        # Initial message to indicate the process has started
+        try:
+            await self.client.edit_message_text(
+                chat_id, msg_id, "**Process started...**", **kwargs
+            )
+        except Exception as e:
+            logging.warning(f"Failed to send start message: {e}")
+    
+        last_stdout_line = None
+    
+        async def read_stream(stream):
+            nonlocal last_stdout_line
             while True:
                 line = await stream.readline()
                 if line:
-                    await handler(
+                    last_stdout_line = (
                         line.decode("utf-8") if isinstance(line, bytes) else line
                     )
                 else:
                     break
-
-        async def handle_stdout(out):
-            try:
-                await self.client.edit_message_text(
-                    chat_id, msg_id, f"**Process info:** \n`{out}`", **kwargs
-                )
-            except Exception as e:
-                logging.warning(e)
-
-        async def handle_stderr(err):
-            if run.returncode is None:
-                await self.__checkErrors(err)
-
-        stdout = read_stream(run.stdout, handle_stdout)
-        stderr = read_stream(run.stderr, handle_stderr)
-
+    
+        stdout_task = read_stream(run.stdout)
+        stderr_task = read_stream(run.stderr)  # Read stderr if necessary
+    
         try:
-            await asyncio.gather(stdout, stderr)
+            await asyncio.gather(stdout_task, stderr_task)
         except asyncio.CancelledError:
             asyncio.create_task(self.__terminate_sub(run))
-
+    
         await run.wait()
+    
+        # Final message to indicate completion and show the last line of stdout
+        try:
+            final_output = last_stdout_line.strip() if last_stdout_line else "No output."
+            await self.client.edit_message_text(
+                chat_id, msg_id, f"**Process completed:** \n`{final_output}`", **kwargs
+            )
+        except Exception as e:
+            logging.warning(f"Failed to send completion message: {e}")
+
 
     async def __terminate_sub(run):
         run.terminate()
