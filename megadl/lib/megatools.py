@@ -320,6 +320,14 @@ class MegaTools:
         )
         self.client.mega_running[user_id] = run.pid
     
+        # Initial message to indicate the process has started
+        try:
+            await self.client.edit_message_text(
+                chat_id, msg_id, "**Process started...**", **kwargs
+            )
+        except Exception as e:
+            logging.warning(e)
+    
         last_stdout_line = None
     
         async def read_stream(stream):
@@ -334,7 +342,7 @@ class MegaTools:
                     break
     
         stdout_task = read_stream(run.stdout)
-        stderr_task = read_stream(run.stderr)  # Ignore `stderr` or handle it separately
+        stderr_task = read_stream(run.stderr)  # Handle `stderr` if needed
     
         try:
             await asyncio.gather(stdout_task, stderr_task)
@@ -343,14 +351,14 @@ class MegaTools:
     
         await run.wait()
     
-        # Edit the message with the last line of stdout
-        if last_stdout_line:
-            try:
-                await self.client.edit_message_text(
-                    chat_id, msg_id, f"**Process info:** \n`{last_stdout_line.strip()}`", **kwargs
-                )
-            except Exception as e:
-                logging.warning(e)
+        # Final message to indicate completion and show the last line of stdout
+        try:
+            final_output = last_stdout_line.strip() if last_stdout_line else "No output."
+            await self.client.edit_message_text(
+                chat_id, msg_id, f"**Process completed:** \n`{final_output}`", **kwargs
+            )
+        except Exception as e:
+            logging.warning(e)
 
     async def __terminate_sub(run):
         run.terminate()
